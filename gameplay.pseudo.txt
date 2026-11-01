@@ -1,0 +1,48 @@
+HIGH-LEVEL GAMEPLAY PSEUDOCODE — Tabletop Bot Arena
+Status: design only. Helpers and engine APIs must be implemented/qualified.
+
+INITIALIZE
+  construct app-owned rules/content state from a validated fresh seed or document
+  allocate only the selected engine's model/world; do not start a second preview model
+  load original assets and validate Rive names/types
+  install commands from CONTROLS.md; render a title and playable preview
+
+WHEN PLAY / RESUME
+  clear stale held input and timing debt
+  enter the active game phase; unlock audio only through a user gesture
+
+PER AUTHORITATIVE SIMULATION / RULE STEP
+  1. collect player command and bounded AI decision
+  2. validate drive, weapon and self-right against cooldowns
+  3. apply impulses/motor targets to one Rapier world
+  4. step then resolve filtered damage/ring-out events
+  5. advance match/cup state exactly once
+  6. drive crew/face animations from committed state
+
+PER PRESENTATION FRAME
+  read current committed model/world; interpolate views only where appropriate
+  derive Rive properties/triggers from committed state, then advance/draw once
+  upload dirty artboard textures only; render scene without stepping physics twice
+  leave menus responsive while paused without advancing game score or simulation
+
+SAVE / LOAD
+  Exact same-build match snapshot; portable cup/progress save also available as a clearly different document kind.
+  validate document off to the side; commit replacement only if complete and valid
+  cancel old input/jobs/callbacks; return to paused current game
+
+ENTER / EXIT XR
+  keep the SAME model/world; change camera/input/model-to-XR presentation only
+  restore original desktop presentation on end; retain current progress, then show Resume
+
+DISPOSE
+  reject future commands and late results; stop clocks/input/audio immediately
+  end only the owned/pending session and release GPU/engine after safe detachment
+  never destroy another app or a shared desktop service
+
+GAME-SPECIFIC EDGE CASES
+- AI and player are constrained by the same action validation.
+- Damage cannot repeat unboundedly during resting contact.
+- Spinner speed/energy capped at solver-safe values.
+- Closing one arena cannot stop another world.
+- Cup save preserves logical progress and live match snapshot semantics.
+- XR exit while driving releases input and returns to paused current match.

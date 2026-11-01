@@ -1,0 +1,132 @@
+{
+  "category": "02-three-physics-xr",
+  "id": "tabletop-bot-arena",
+  "title": "Tabletop Bot Arena",
+  "genre": "Single-player BattleBots-style capstone",
+  "pitch": "Drive a small toy robot against three readable local-AI opponents in a tabletop arena.",
+  "capabilities": [
+    "Compound colliders and driven bodies",
+    "Weapon joints, contact-based damage and AI",
+    "Polished match loop shared across screen and XR"
+  ],
+  "rules": [
+    "Select wedge, lifter or spinner preset. Fight one AI bot at a time; no robot CAD editor or multiplayer in this release.",
+    "Rounds last 90 simulation seconds. Win by ring-out, health depletion or declared score comparison. Weapon energy and impulses are bounded.",
+    "AI uses the same drive/weapon action interface and cannot teleport or bypass cooldowns. Damage uses filtered contact criteria with immunity windows."
+  ],
+  "content": "One arena, three player presets, three opponent personalities, practice dummy and a three-round cup.",
+  "state": [
+    "robot preset definitions",
+    "world snapshot and stable component ids",
+    "health/energy/cooldowns",
+    "AI state and seed",
+    "match clock, score and cup progress"
+  ],
+  "actions": [
+    {
+      "command": "drive",
+      "desktop": "WASD / arrows",
+      "phone": "Left-thumb drive pad",
+      "xr": "Ray-operated virtual stick or gamepad; hands optional"
+    },
+    {
+      "command": "weapon",
+      "desktop": "Space",
+      "phone": "Large weapon button",
+      "xr": "Virtual weapon button / controller action"
+    },
+    {
+      "command": "self-right",
+      "desktop": "R if ability ready",
+      "phone": "Self-right button",
+      "xr": "Bench ability button"
+    },
+    {
+      "command": "inspect-setup",
+      "desktop": "Garage controls before match",
+      "phone": "Garage cards before match",
+      "xr": "Garage panel on table"
+    }
+  ],
+  "rive": {
+    "asset": "bot-crew.riv",
+    "role": "Garage helper, match announcer and animated faces on bots via tiny texture panels.",
+    "properties": {
+      "health": "number 0..1",
+      "energy": "number 0..1",
+      "matchPhase": "enum setup/fight/result"
+    },
+    "events": [
+      "hit",
+      "roundWin",
+      "cupWin"
+    ],
+    "states": [
+      "idle",
+      "ready",
+      "fight",
+      "hurt",
+      "cheer"
+    ],
+    "artboard": "Main",
+    "stateMachine": "Presentation",
+    "assetStatus": "to_author"
+  },
+  "polish": [
+    "Clear weapon telegraphs and opponent personality",
+    "Bots keep physics hulls independent of face animation",
+    "Contact feedback without forced XR shake; restart in one action"
+  ],
+  "tests": [
+    "AI and player are constrained by the same action validation.",
+    "Damage cannot repeat unboundedly during resting contact.",
+    "Spinner speed/energy capped at solver-safe values.",
+    "Closing one arena cannot stop another world.",
+    "Cup save preserves logical progress and live match snapshot semantics.",
+    "XR exit while driving releases input and returns to paused current match."
+  ],
+  "loop": [
+    "collect player command and bounded AI decision",
+    "validate drive, weapon and self-right against cooldowns",
+    "apply impulses/motor targets to one Rapier world",
+    "step then resolve filtered damage/ring-out events",
+    "advance match/cup state exactly once",
+    "drive crew/face animations from committed state"
+  ],
+  "save": "Exact same-build match snapshot; portable cup/progress save also available as a clearly different document kind.",
+  "wave": 4,
+  "xr_mode": "tabletop",
+  "xr_presentation": "The full match on a placed arena board; optional spectator orbit on desktop, direct viewing in XR. Do not physically move the arena while the match is active.",
+  "comfort": "Seated tabletop controls; no mandatory crouching or locomotion. Reposition pauses and clears held controls.",
+  "scope": "Original toy robots and branding. BattleBots-style is descriptive; do not bundle branded logos, show assets or copied robots.",
+  "specVersion": 1,
+  "status": "planned",
+  "implementation": "not_started",
+  "runtimeTests": "not_run",
+  "engine": "Three.js + Rapier",
+  "singlePlayer": true,
+  "phoneRequired": true,
+  "mountContract": {
+    "export": "mount",
+    "synchronous": true,
+    "returns": [
+      "element",
+      "dispose"
+    ],
+    "productionEntry": "index.mjs",
+    "suppliedEntry": "index.pseudo.mjs"
+  },
+  "xrRequired": true,
+  "riveRequired": true,
+  "riveAssetIncluded": false,
+  "documentKind": "Exact same-build match snapshot; portable cup/progress save also available as a clearly different document kind.",
+  "sources": [
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S12",
+    "S13"
+  ]
+}
