@@ -85,7 +85,7 @@ export async function startView(host:Host,signal:AbortSignal):Promise<ViewHandle
   const tell=(message:string)=>{if(valid())status.textContent=message};
   const mark=()=>{revision++;host.w.tabletopBotArena={dirty:true}};
   const current=()=>{if(!session)throw Error("Arena is still starting.");return session};
-  const setBusy=(value:boolean)=>{busy=value;open.disabled=value;saveMatchButton.disabled=value;saveCupButton.disabled=value;start.disabled=value;newMatchButton.disabled=value;restart.disabled=value;nextCup.disabled=value||!session||!["won","cup-win","lost"].includes(session.result)};
+  const setBusy=(value:boolean)=>{busy=value;if(value)clearHeld();open.disabled=value;saveMatchButton.disabled=value;saveCupButton.disabled=value;start.disabled=value;newMatchButton.disabled=value;restart.disabled=value;nextCup.disabled=value||!session||!["won","cup-win","lost"].includes(session.result)};
   function robotMesh(){const group=new THREE.Group(),body=new THREE.Mesh(new THREE.BoxGeometry(1.1,.26,.84),new THREE.MeshStandardMaterial({roughness:.45,metalness:.35})),weapon=new THREE.Mesh(new THREE.BoxGeometry(.95,.18,.5),new THREE.MeshStandardMaterial({color:0x697585,roughness:.4,metalness:.5}));weapon.position.set(0,-.6,.02);group.add(body,weapon);group.userData={body,weapon};return group}
   function syncGarage(){const practice=mode.value==="practice",locked=!!session&&!session.paused&&session.result==="playing";opponent.disabled=practice||locked;preset.disabled=locked;mode.disabled=locked}
   function sync(){
@@ -98,7 +98,7 @@ export async function startView(host:Host,signal:AbortSignal):Promise<ViewHandle
     scoreLine.textContent=`${state.opponent} · ${state.matchSeconds}s`;
     detail.textContent=`${state.mode==="cup"?`Cup round ${state.cupRound}/3`:"Practice"} · ${ROBOT_PRESETS[state.preset].name} · ${state.personality}`;
     healthLine.textContent=`Player ${Math.round(view.player.health)} HP / ${Math.round(view.player.energy)} energy · Opponent ${Math.round(view.opponent.health)} HP`;
-    start.textContent=state.paused?(state.result==="playing"?"Start / resume":"Match complete"):"Pause";start.disabled=state.result!=="playing";
+    start.textContent=state.paused?(state.result==="playing"?"Start / resume":"Match complete"):"Pause";start.disabled=busy||state.result!=="playing";
     nextCup.hidden=!(state.mode==="cup"&&state.result==="won");
     syncGarage();
     if(state.result!=="playing"&&lastResult!==state.result){lastResult=state.result;audio.tone(state.result==="lost"?130:520,120,"triangle");tell(state.result==="lost"?"Opponent wins this round. Restart or open a checkpoint.":state.result==="cup-win"?"You won the three-round cup!":state.result==="won"?"Round won. Continue to the next cup opponent.":"Match complete.")}
@@ -110,18 +110,46 @@ export async function startView(host:Host,signal:AbortSignal):Promise<ViewHandle
     session=new ArenaSession({preset:presetName(),mode:modeName(),opponentIndex:Number(opponent.value),seed:crypto.getRandomValues(new Uint32Array(1))[0]});
     lastResult="playing";clearWatch();savedPath=null;savedVersion=null;delete host.w.launchContext;
   }
-  async function newMatch(){if(busy||!valid())return;const live=session;if(live?.result==="playing"&&host.w.tabletopBotArena?.dirty&&!await host.ui.confirm("Start a new match and discard current progress?",{title:"New match",confirmLabel:"Start new match",cancelLabel:"Keep match",danger:true,signal}))return;if(!valid())return;const game=new ArenaSession({preset:presetName(),mode:modeName(),opponentIndex:Number(opponent.value),seed:crypto.getRandomValues(new Uint32Array(1))[0]});await game.ready;if(!valid()){game.dispose();return}const previous=session;session=game;previous?.dispose();lastResult="playing";clearWatch();savedPath=null;savedVersion=null;delete host.w.launchContext;host.w.tabletopBotArena={dirty:false};mark();tell("Match ready. Press Start.");sync()}
-  function togglePlay(){try{const game=current();if(game.result!=="playing")return;if(game.paused){game.start();audio.unlock();tell("Arena running. Drive and use the bounded weapon.");mark()}else{game.pause();clearHeld();tell("Arena paused.");mark()}sync()}catch(error){tell("Arena unavailable: "+(error as Error).message)}}
-  function firePlayer(){try{if(current().activatePlayerWeapon()){audio.tone(220,50);mark();tell("Weapon activated.")}else tell("Weapon is cooling down or lacks energy.")}catch{}}
-  function rightSelf(){try{const used=current().selfRight();if(used){audio.tone(320,60,"triangle");mark();tell("Robot self-right used once.")}else tell("Self-right is not ready.")}catch{}}
-  function clearHeld(){held.forward=0;held.right=0;keys.clear()}
-  function drive(){if(!session||session.paused)return;const command:DriveCommand={forward:held.forward,right:held.right};if(Math.abs(held.forward)+Math.abs(held.right)>0)session.drivePlayer(command)}
-  const holdButton=(button:HTMLButtonElement,key:"forward"|"right",value:number)=>{const down=(event:PointerEvent)=>{event.preventDefault();button.setPointerCapture(event.pointerId);held[key]=value};const up=()=>{held[key]=0};button.addEventListener("pointerdown",down);for(const name of ["pointerup","pointercancel","lostpointercapture"])button.addEventListener(name,up)};
+  async function newMatch(){
+    if(busy||!valid())return;
+    setBusy(true);let game:ArenaSession|null=null;
+    try{
+      const live=current(),before=encodeMatchSave(live),atRevision=revision;
+      const options={preset:presetName(),mode:modeName(),opponentIndex:Number(opponent.value)};
+      live.pause();sync();
+      if(live.result==="playing"&&host.w.tabletopBotArena?.dirty&&!await host.ui.confirm("Start a new match and discard current progress?",{title:"New match",confirmLabel:"Start new match",cancelLabel:"Keep match",danger:true,signal})){tell("Current match kept and paused.");return}
+      if(!valid())return;
+      const unchanged=()=>session===live&&revision===atRevision&&encodeMatchSave(live)===before&&options.preset===presetName()&&options.mode===modeName()&&options.opponentIndex===Number(opponent.value);
+      if(!unchanged())throw Error("The match changed while confirming; try again.");
+      game=new ArenaSession({...options,seed:crypto.getRandomValues(new Uint32Array(1))[0]});await game.ready;
+      if(!valid())return;
+      if(!unchanged())throw Error("The match changed while preparing; try again.");
+      session=game;game=null;live.dispose();lastResult="playing";clearWatch();savedPath=null;savedVersion=null;delete host.w.launchContext;host.w.tabletopBotArena={dirty:false};mark();tell("Match ready. Press Start.");sync();
+    }catch(error){tell("Could not start a new match: "+(error instanceof Error?error.message:"unknown error"))}
+    finally{game?.dispose();setBusy(false);if(valid()&&session)sync()}
+  }
+
+  function togglePlay(){if(busy||!valid())return;try{const game=current();if(game.result!=="playing")return;if(game.paused){game.start();audio.unlock();tell("Arena running. Drive and use the bounded weapon.");mark()}else{game.pause();clearHeld();tell("Arena paused.");mark()}sync()}catch(error){tell("Arena unavailable: "+(error as Error).message)}}
+  function firePlayer(){if(busy||!valid())return;try{if(current().activatePlayerWeapon()){audio.tone(220,50);mark();tell("Weapon activated.")}else tell("Weapon is cooling down or lacks energy.")}catch{}}
+  function rightSelf(){if(busy||!valid())return;try{const used=current().selfRight();if(used){audio.tone(320,60,"triangle");mark();tell("Robot self-right used once.")}else tell("Self-right is not ready.")}catch{}}
+  const keys=new Set<string>(),pointers=new Map<number,{key:"forward"|"right";value:number}>();
+  function clearHeld(){keys.clear();pointers.clear();updateDrive()}
+  function updateDrive(){
+    let forward=Number(keys.has("w")||keys.has("arrowup"))-Number(keys.has("s")||keys.has("arrowdown"));
+    let rightward=Number(keys.has("d")||keys.has("arrowright"))-Number(keys.has("a")||keys.has("arrowleft"));
+    for(const pointer of pointers.values()){if(pointer.key==="forward")forward+=pointer.value;else rightward+=pointer.value}
+    held.forward=Math.max(-1,Math.min(1,forward));held.right=Math.max(-1,Math.min(1,rightward));
+  }
+  function drive(){if(!session||session.paused||busy)return;const command:DriveCommand={forward:held.forward,right:held.right};if(Math.abs(held.forward)+Math.abs(held.right)>0)session.drivePlayer(command)}
+  const holdButton=(button:HTMLButtonElement,key:"forward"|"right",value:number)=>{
+    const down=(event:PointerEvent)=>{if(event.button!==0||busy||!valid()||!session||session.paused)return;event.preventDefault();button.setPointerCapture(event.pointerId);pointers.set(event.pointerId,{key,value});updateDrive()};
+    const up=(event:PointerEvent)=>{if(pointers.delete(event.pointerId))updateDrive()};
+    button.addEventListener("pointerdown",down);for(const name of ["pointerup","pointercancel","lostpointercapture"])button.addEventListener(name,up as EventListener);
+  };
   holdButton(up,"forward",1);holdButton(down,"forward",-1);holdButton(left,"right",-1);holdButton(right,"right",1);
-  const acceptsKey=(event:KeyboardEvent)=>{const windowElement=element.closest(".window"),target=event.target;return valid()&&(!windowElement||windowElement.classList.contains("focused"))&&!(target instanceof Element&&target.closest("input,textarea,select,[contenteditable]:not([contenteditable=false])"))};
-  const keys=new Set<string>();const keyDown=(event:KeyboardEvent)=>{if(!acceptsKey(event))return;const key=event.key.toLowerCase();if(["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"," ","r","escape"].includes(key))event.preventDefault();if(event.repeat)return;keys.add(key);if(key===" "){firePlayer();return}if(key==="r"){rightSelf();return}if(key==="escape"){togglePlay();return}updateKeyboardDrive()};
-  const keyUp=(event:KeyboardEvent)=>{keys.delete(event.key.toLowerCase());updateKeyboardDrive()};
-  function updateKeyboardDrive(){held.forward=(keys.has("w")||keys.has("arrowup")?1:0)-(keys.has("s")||keys.has("arrowdown")?1:0);held.right=(keys.has("d")||keys.has("arrowright")?1:0)-(keys.has("a")||keys.has("arrowleft")?1:0)}
+  const acceptsKey=(event:KeyboardEvent)=>{const windowElement=element.closest(".window"),target=event.target;return !busy&&valid()&&(!windowElement||windowElement.classList.contains("focused"))&&!(target instanceof Element&&target.closest("input,textarea,select,[contenteditable]:not([contenteditable=false])"))};
+  const keyDown=(event:KeyboardEvent)=>{if(!acceptsKey(event))return;const key=event.key.toLowerCase();if(!["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"," ","r","escape"].includes(key))return;event.preventDefault();if(event.repeat)return;if(key===" "){firePlayer();return}if(key==="r"){rightSelf();return}if(key==="escape"){togglePlay();return}if(!session||session.paused)return;keys.add(key);updateDrive()};
+  const keyUp=(event:KeyboardEvent)=>{keys.delete(event.key.toLowerCase());updateDrive()};
   window.addEventListener("keydown",keyDown);window.addEventListener("keyup",keyUp);
   weapon.addEventListener("click",firePlayer);selfRight.addEventListener("click",rightSelf);
 
@@ -137,11 +165,11 @@ export async function startView(host:Host,signal:AbortSignal):Promise<ViewHandle
   const saveMatch=()=>writeDocument("match"),saveCup=()=>writeDocument("cup");
   async function openSaved(selected?:string){
     if(!valid()||busy)return;setBusy(true);let replacement:ArenaSession|null=null;
-    try{const live=current(),before=encodeMatchSave(live),atRevision=revision;live.pause();if(host.w.tabletopBotArena?.dirty&&!await host.ui.confirm("Open a saved arena and discard current progress?",{title:"Unsaved arena",confirmLabel:"Discard progress",cancelLabel:"Keep arena",danger:true,signal})){tell("Arena paused. Current match kept.");return}if(!valid())return;if(revision!==atRevision||encodeMatchSave(live)!==before)throw Error("The arena changed while confirming; try again.");const choice=selected||await host.storage.pickFile({extensions:[".json"],signal});if(!choice||!valid())return;const context=await host.storage.mirrorFileContext(),target=context.path(choice),file=await context.files.read(target);if(!valid()||!context.valid())return;if(file.status==="conflict")throw Error("Resolve the conflict in Files first.");if(file.data.byteLength>32*1024*1024)throw Error("Save file is too large.");const decoded=decodeSave(new TextDecoder("utf-8",{fatal:true}).decode(file.data));replacement=decoded.kind==="match-snapshot"?new ArenaSession({snapshot:decoded.payload}):new ArenaSession({preset:decoded.payload.preset,mode:decoded.payload.mode,opponentIndex:decoded.payload.opponentIndex,cupWins:decoded.payload.cupWins,cupRound:decoded.payload.cupRound,seed:crypto.getRandomValues(new Uint32Array(1))[0]});await replacement.ready;if(!valid()||!context.valid())return;const previous=session;session=replacement;replacement=null;previous?.dispose();revision++;savedPath=target;savedVersion=file.version;path.value=target;mode.value=session.mode;preset.value=session.preset;opponent.value=String(session.opponentIndex);host.w.launchContext={version:1,storage:"mirror",path:target,owner};host.w.title=target.split("/").pop()+" — Tabletop Bot Arena";host.w.tabletopBotArena={dirty:false};lastResult=session.result;watch(context,target,file.version);tell(decoded.kind==="match-snapshot"?"Match loaded and paused. Press Start / resume.":"Cup progress loaded. New round is paused.");sync()
+    try{const live=current(),before=encodeMatchSave(live),atRevision=revision;live.pause();if(host.w.tabletopBotArena?.dirty&&!await host.ui.confirm("Open a saved arena and discard current progress?",{title:"Unsaved arena",confirmLabel:"Discard progress",cancelLabel:"Keep arena",danger:true,signal})){tell("Arena paused. Current match kept.");return}if(!valid())return;if(revision!==atRevision||encodeMatchSave(live)!==before)throw Error("The arena changed while confirming; try again.");const choice=selected||await host.storage.pickFile({extensions:[".json"],signal});if(!choice||!valid())return;const context=await host.storage.mirrorFileContext(),target=context.path(choice),file=await context.files.read(target);if(!valid()||!context.valid())return;if(file.status==="conflict")throw Error("Resolve the conflict in Files first.");if(file.data.byteLength>32*1024*1024)throw Error("Save file is too large.");const decoded=decodeSave(new TextDecoder("utf-8",{fatal:true}).decode(file.data));replacement=decoded.kind==="match-snapshot"?new ArenaSession({snapshot:decoded.payload}):new ArenaSession({preset:decoded.payload.preset,mode:decoded.payload.mode,opponentIndex:decoded.payload.opponentIndex,cupWins:decoded.payload.cupWins,cupRound:decoded.payload.cupRound,seed:crypto.getRandomValues(new Uint32Array(1))[0]});await replacement.ready;if(!valid()||!context.valid())return;if(session!==live||revision!==atRevision||encodeMatchSave(live)!==before)throw Error("The arena changed while opening; try again.");const previous=session;session=replacement;replacement=null;previous?.dispose();revision++;savedPath=target;savedVersion=file.version;path.value=target;mode.value=session.mode;preset.value=session.preset;opponent.value=String(session.opponentIndex);host.w.launchContext={version:1,storage:"mirror",path:target,owner};host.w.title=target.split("/").pop()+" — Tabletop Bot Arena";host.w.tabletopBotArena={dirty:false};lastResult=session.result;watch(context,target,file.version);tell(decoded.kind==="match-snapshot"?"Match loaded and paused. Press Start / resume.":"Cup progress loaded. New round is paused.");sync()
     }catch(error){tell("Could not open arena: "+(error as Error).message)}finally{replacement?.dispose();setBusy(false)}
   }
-  const restartMatch=()=>{try{const game=current();game.restart();lastResult="playing";clearHeld();host.w.tabletopBotArena={dirty:true};tell("Match restarted. Press Start.");sync()}catch(error){tell("Could not restart: "+(error as Error).message)}};
-  const nextRound=()=>{try{const game=current();if(!game.advanceCup())return;host.w.tabletopBotArena={dirty:true};lastResult="playing";tell("Next cup round ready. Press Start.");sync()}catch(error){tell("Could not advance cup: "+(error as Error).message)}};
+  const restartMatch=()=>{if(busy||!valid())return;try{const game=current();game.restart();lastResult="playing";clearHeld();mark();tell("Match restarted. Press Start.");sync()}catch(error){tell("Could not restart: "+(error as Error).message)}};
+  const nextRound=()=>{if(busy||!valid())return;try{const game=current();if(!game.advanceCup())return;mark();lastResult="playing";tell("Next cup round ready. Press Start.");sync()}catch(error){tell("Could not advance cup: "+(error as Error).message)}};
   sound.addEventListener("change",()=>{audio.setMuted(!sound.checked);volume.disabled=!sound.checked;settingsNotice.textContent="";if(sound.checked)audio.unlock()});volume.addEventListener("input",()=>audio.setVolume(Number(volume.value)/100));
   const suspend=()=>{clearHeld();const game=session;if(!game||game.paused||disposed)return;game.pause();mark();sync();tell("Arena paused when its window lost attention. Press Start / resume.")};const visibility=()=>{if(document.hidden)suspend()};window.addEventListener("blur",suspend);document.addEventListener("visibilitychange",visibility);
   let observedWindow:HTMLElement|null=null;const windowObserver=new MutationObserver(()=>{if(observedWindow&&(observedWindow.hidden||!observedWindow.classList.contains("focused")||observedWindow.classList.contains("rolled")))suspend()});

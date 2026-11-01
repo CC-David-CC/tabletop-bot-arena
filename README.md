@@ -50,3 +50,7 @@ Keyboard controls act only in the focused game window and leave text fields
 alone. Losing focus clears held controls. A local registered-account test
 covers input focus, server sync, and a phone-sized reopen; physical touch was
 not tested.
+
+The isolated `tests/tabletop-bot-arena-input-review.test.mjs` checks overlapping
+emulated drive touches, canceling New match, and account save/sync/reopen on
+desktop and emulated phone. Physical touch and full cup play remain untested.
