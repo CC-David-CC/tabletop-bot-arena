@@ -37,9 +37,9 @@ arena intact.
 ## Development
 
 ```sh
-npm ci --prefix apps/system/tabletop-bot-arena --ignore-scripts
-npm run typecheck --prefix apps/system/tabletop-bot-arena
-npm test --prefix apps/system/tabletop-bot-arena
+npm ci --prefix apps/games/02-three-physics-xr/tabletop-bot-arena --ignore-scripts
+npm run typecheck --prefix apps/games/02-three-physics-xr/tabletop-bot-arena
+npm test --prefix apps/games/02-three-physics-xr/tabletop-bot-arena
 ```
 
 The browser fixture and account tests are under `tests/tabletop-bot-arena-*`.
