@@ -1,3 +1,5 @@
+> Original design reference from 2026-10-30. This describes intended behavior, not current implementation or qualification. The current app README is authoritative for status. Pseudocode and template JSON here are documentation, not build entries.
+
 # Controls — Tabletop Bot Arena
 
 All columns produce the same game intents. These mappings are design targets, not tested input bindings.
@@ -19,4 +21,4 @@ A UI gesture is consumed once. Menu/Rive controls do not also fire into the game
 
 Responsive layout follows this window's size; phone portrait and landscape must both remain playable, with contextual controls outside the important play area. Hardware gamepads are optional. The headset's native target-ray/select path is the baseline for immersive controls; articulated hands are an enhancement where this app specifies them.
 
-See [phone/input guidance](../../docs/PHONE-AND-INPUT.md) and [common gates](../../docs/ACCEPTANCE-COMMON.md).
+See [phone/input guidance](../../../../../docs/games/design-reference/PHONE-AND-INPUT.md) and [common gates](../../../../../docs/games/design-reference/ACCEPTANCE-COMMON.md).

@@ -1,3 +1,5 @@
+> Original design reference from 2026-10-30. This describes intended behavior, not current implementation or qualification. The current app README is authoritative for status. Pseudocode and template JSON here are documentation, not build entries.
+
 # App-owned XR flow — Tabletop Bot Arena
 
 ## Same game, spatial presentation
@@ -20,7 +22,7 @@ Normal desktop window
       Original desktop window: restored camera/UI, current game paused
 ```
 
-This behavior lives in this app's implementation, not a desktop service. [index.pseudo.mjs](index.pseudo.mjs) includes the intended orchestration. Read [XR-LIFECYCLE.md](../../docs/XR-LIFECYCLE.md) for entry, pending-request disposal, end events and timing rules.
+This behavior lives in this app's implementation, not a desktop service. [index.pseudo.mjs](index.pseudo.mjs) includes the intended orchestration. Read [XR-LIFECYCLE.md](../../../../../docs/games/design-reference/XR-LIFECYCLE.md) for entry, pending-request disposal, end events and timing rules.
 
 ## Game-specific comfort and input
 
@@ -42,4 +44,4 @@ Model-space dimensions/physics remain unchanged when the scene is visually scale
 
 ## Unrun acceptance
 
-All X01–X16 in [common acceptance](../../docs/ACCEPTANCE-COMMON.md) apply, plus this game's specific cases. Test real headset entry/exit and in-world Rive controls. Desktop XR emulation is useful but is not device validation.
+All X01–X16 in [common acceptance](../../../../../docs/games/design-reference/ACCEPTANCE-COMMON.md) apply, plus this game's specific cases. Test real headset entry/exit and in-world Rive controls. Desktop XR emulation is useful but is not device validation.

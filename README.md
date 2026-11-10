@@ -54,3 +54,7 @@ not tested.
 The isolated `tests/tabletop-bot-arena-input-review.test.mjs` checks overlapping
 emulated drive touches, canceling New match, and account save/sync/reopen on
 desktop and emulated phone. Physical touch and full cup play remain untested.
+
+## Design requirements
+
+The original [design brief, controls, save rules, artwork and acceptance plans](design/README.md) are retained as reference. They describe targets; the implementation and qualification status above takes precedence.

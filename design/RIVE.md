@@ -1,3 +1,5 @@
+> Original design reference from 2026-10-30. This describes intended behavior, not current implementation or qualification. The current app README is authoritative for status. Pseudocode and template JSON here are documentation, not build entries.
+
 # Rive brief — Tabletop Bot Arena
 
 **Asset to author:** `bot-crew.riv` · **artboard:** `Main` · **state machine:** `Presentation`.
@@ -30,7 +32,7 @@ Rive → bounded source canvas → engine texture for in-scene elements; standar
 
 The game owns advancement and texture updates. State machines advance once per presentation frame, not once per stereo eye. Freeze dirty/static panels; retain semantic labels and accessible actions. Test alpha, Y orientation, UV fit and phone-size sharpness. Do not create a new texture per frame or use Rive pose as a collision shape.
 
-See [RIVE-COMPOSITION.md](../../docs/RIVE-COMPOSITION.md) for Phaser CanvasTexture / Three CanvasTexture / Babylon DynamicTexture guidance and renderer tradeoffs. This ZIP provides no tested adapter.
+See [RIVE-COMPOSITION.md](../../../../../docs/games/design-reference/RIVE-COMPOSITION.md) for Phaser CanvasTexture / Three CanvasTexture / Babylon DynamicTexture guidance and renderer tradeoffs. This ZIP provides no tested adapter.
 
 ## Acceptance of the artwork
 
