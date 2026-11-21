@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 export {describe, it};
 
 const ARRAY_CONTAINING = Symbol('arrayContaining');
+const STRING_MATCHING = Symbol('stringMatching');
 
 export function expect(actual: unknown, message?: string) {
   return {
@@ -25,7 +26,17 @@ export function expect(actual: unknown, message?: string) {
     },
     toMatchObject(expected: Record<string, unknown>) {
       for (const [key, value] of Object.entries(expected)) {
-        assert.deepStrictEqual((actual as Record<string, unknown>)[key], value, message);
+        const act = (actual as Record<string, unknown>)[key];
+        if (value && typeof value === 'object' && (value as any)[STRING_MATCHING]) {
+          const pattern = (value as any).pattern;
+          if (typeof pattern === 'string') {
+            assert.ok(String(act).includes(pattern), message || `Expected "${act}" to include "${pattern}"`);
+          } else if (pattern instanceof RegExp) {
+            assert.ok(pattern.test(String(act)), message || `Expected "${act}" to match ${pattern}`);
+          }
+        } else {
+          assert.deepStrictEqual(act, value, message);
+        }
       }
     },
     toHaveLength(expected: number) {
@@ -127,6 +138,11 @@ export function expect(actual: unknown, message?: string) {
 expect.arrayContaining = (expected: unknown[]) => ({
   [ARRAY_CONTAINING]: true,
   expected,
+});
+
+expect.stringMatching = (pattern: RegExp | string) => ({
+  [STRING_MATCHING]: true,
+  pattern,
 });
 
 export const vi = {
