@@ -1,5 +1,5 @@
-import {describe,expect,it} from "vitest";
-import {ArenaSession,OPPONENTS,decodeSave,encodeCupSave,encodeMatchSave} from "../src/model/arena.js";
+import {describe,expect,it} from "./test-shim.ts";
+import {ArenaSession,OPPONENTS,decodeSave,encodeCupSave,encodeMatchSave} from "../src/model/arena.ts";
 
 describe("Tabletop Bot Arena model",()=>{
   it("validates drive and weapon actions through the same cooldowns",async()=>{

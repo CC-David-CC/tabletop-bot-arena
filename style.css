@@ -1,1 +1,70 @@
 .tabletop-arena-app{display:flex;flex-direction:column;min-height:0;padding:8px;background:#eef1f5;color:#172238;overflow:auto}.arena-toolbar,.arena-controls,.arena-garage{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.arena-toolbar button,.arena-toolbar select,.arena-controls button,.arena-garage button,.arena-garage select{min-height:40px}.arena-layout{display:flex;flex:1 1 auto;gap:8px;min-height:360px}.arena-stage{position:relative;flex:1 1 450px;min-height:360px;border:1px solid #596575;background:#152235;overflow:hidden;touch-action:none}.arena-stage canvas{display:block;width:100%!important;height:100%!important}.arena-side{display:flex;flex:0 1 260px;flex-direction:column;gap:8px;min-width:200px}.arena-score{padding:10px;border:1px solid #8b7042;border-radius:8px;background:#fff1c9}.arena-score strong{display:block;font-size:1.05rem}.arena-score-output{font:700 1.15rem ui-monospace,monospace}.arena-notice{padding:7px 9px;border:1px solid #b27a15;background:#fff4cf;color:#593900}.arena-notice[hidden]{display:none}.arena-garage{display:block}.arena-garage label{display:inline-flex;align-items:center;gap:5px;margin:0 8px 5px 0}.arena-settings label{display:flex;align-items:center;gap:6px}.arena-settings input[type=range]{width:130px}.arena-save-fields{display:flex;flex-wrap:wrap;gap:6px}.arena-save-fields input{min-width:150px;flex:1}.arena-save-fields button{min-height:40px}.arena-help p{margin:4px 0;max-width:70ch}.arena-controls button{flex:1 1 92px;touch-action:none}.arena-side .app-status{position:sticky;bottom:0;background:#eef1f5}@media(max-width:700px){.tabletop-arena-app{padding:5px;gap:5px}.arena-layout{flex-direction:column}.arena-stage{flex-basis:420px;min-height:420px}.arena-side{min-width:0}.arena-toolbar button,.arena-toolbar select,.arena-controls button,.arena-garage button,.arena-garage select,.arena-save-fields button{min-height:44px}}
+
+
+/* Tier 1: Simplified Phone Display (< 768px) */
+@media (max-width: 768px) {
+  .tabletop-arena-app {
+    padding: 6px;
+    gap: 6px;
+  }
+  .arena-layout {
+    flex-direction: column;
+  }
+  .arena-stage {
+    min-height: 280px;
+    flex-basis: auto;
+  }
+  .arena-side {
+    min-width: 100%;
+    width: 100%;
+  }
+  .arena-toolbar button,
+  .arena-toolbar select,
+  .arena-controls button,
+  .arena-garage button,
+  .arena-garage select,
+  .arena-save-fields button {
+    min-height: 48px;
+  }
+}
+
+/* Tier 2: Full 1080p Desktop Display (1024px to 2559px) */
+@media (min-width: 1024px) and (max-width: 2559px) {
+  .arena-stage {
+    min-height: 520px;
+  }
+  .arena-side {
+    min-width: 280px;
+  }
+}
+
+/* Tier 3: Complete 4K UHD Display (>= 2560px) */
+@media (min-width: 2560px) {
+  .tabletop-arena-app {
+    padding: 20px;
+    gap: 16px;
+    font-size: 1.25rem;
+  }
+  .arena-stage {
+    min-height: 840px;
+  }
+  .arena-side {
+    min-width: 440px;
+  }
+  .arena-toolbar button,
+  .arena-toolbar select,
+  .arena-controls button,
+  .arena-garage button,
+  .arena-garage select,
+  .arena-save-fields button {
+    min-height: 54px;
+    font-size: 1.2rem;
+    padding: 10px 18px;
+  }
+  .arena-score strong {
+    font-size: 1.4rem;
+  }
+  .arena-score-output {
+    font-size: 1.5rem;
+  }
+}
